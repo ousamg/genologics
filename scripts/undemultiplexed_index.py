@@ -282,9 +282,7 @@ class RunQC():
             self.abstract.append('Failed to make qc for samples: {0}'.format(
                 ', '.join(list(set(self.QC_fail)))))
         if 'WARNING' in ' '.join(self.abstract):
-            sys.stderr(' '.join(self.abstract))
-            sys.exit(-1)
-            #sys.exit(' '.join(self.abstract))
+            sys.exit(' '.join(self.abstract))
         else:
             print >> sys.stderr, ' '.join(self.abstract)
 
