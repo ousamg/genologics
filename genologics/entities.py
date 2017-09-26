@@ -495,6 +495,7 @@ class Udfconfig(Entity):
     first_preset_is_default_value = BooleanDescriptor('first-preset-is-default-value')
     show_in_tables                = BooleanDescriptor('show-in-tables')
     is_editable                   = BooleanDescriptor('is-editable')
+    is_required                   = BooleanDescriptor('is-required')
     is_deviation                  = BooleanDescriptor('is-deviation') 
     is_controlled_vocabulary      = BooleanDescriptor('is-controlled-vocabulary')
     presets                       = StringListDescriptor('preset') 
@@ -771,12 +772,20 @@ class StepActions(Entity):
                 self._escalation['artifacts'] = []
                 self._escalation['author'] = Researcher(self.lims,
                                                         uri=node.find('request').find('author').attrib.get('uri'))
-                self._escalation['request'] = uri = node.find('request').find('comment').text
+                try:
+                    self._escalation['request'] = node.find('request').find('comment').text
+                except:
+                    self._escalation['request'] = ""
+
                 if node.find('review') is not None:  # recommended by the Etree doc
                     self._escalation['status'] = 'Reviewed'
                     self._escalation['reviewer'] = Researcher(self.lims,
                                                               uri=node.find('review').find('author').attrib.get('uri'))
-                    self._escalation['answer'] = uri = node.find('review').find('comment').text
+                    try:
+                        self._escalation['answer'] = node.find('review').find('comment').text
+                    except:
+                        self._escalation['answer'] = ""
+
                 else:
                     self._escalation['status'] = 'Pending'
 
