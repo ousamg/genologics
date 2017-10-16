@@ -98,9 +98,12 @@ class Lims(object):
         else:
             raise ValueError("id or uri required")
         url = urljoin(self.baseuri, '/'.join(segments))
-        r = self.request_session.get(url, auth=(self.username, self.password), timeout=TIMEOUT)
+        r = self.request_session.get(url, auth=(self.username, self.password), timeout=TIMEOUT, stream=True)
         self.validate_response(r)
-        return r.text
+        if 'text' in r.headers['Content-Type']:
+            return r.text
+        else:
+            return r.raw
 
     def upload_new_file(self, entity, file_to_upload):
         """Upload a file and attach it to the provided entity."""

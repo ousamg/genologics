@@ -35,7 +35,7 @@ setup(name='genologics',
 	"Programming Language :: Python",
 	"Topic :: Scientific/Engineering :: Medical Science Apps."
 	],
-      keywords='genologics api rest',
+      keywords='genologics api rest clarity lims illumina',
       author='Per Kraulis',
       author_email='per.kraulis@scilifelab.se',
       maintainer='Denis Moreno',
