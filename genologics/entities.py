@@ -691,6 +691,86 @@ class Artifact(Entity):
     workflow_stages_and_statuses = property(_get_workflow_stages_and_statuses)
 
 
+class StepPools(Entity):
+    """Pools from within a step. Supports POST
+    pools : [ {'output' : output_art, 'name' : 'AAAA', 'inputs':[input_art_1, input_art_2, ...]}, ...]
+    available_inputs : {input1:{'replicates':N}}
+    When POSTing, only pools need to be updated, available_inputs can be left as is.
+    In pools, output can be left blank, Clarity will generate an output artifact. """
+
+    _pools = None
+    _available_inputs = None
+
+    def _remove_available_inputs(self, input_art):
+        """ removes an input from the available inputs, one replicate at a time
+        """
+        rep = self._available_inputs.get(input_art, {'replicates': 0}).get('replicates', 1)
+        if rep > 1:
+            self._available_inputs[input_art]['replicates'] = rep - 1
+        elif rep == 1:
+            del(self._available_inputs[input_art])
+        else:
+            raise Exception("No more replicates left for artifact {0}".format(input_art))
+        self.available_inputs = self._available_inputs
+
+    def set_available_inputs(self, available_inputs):
+        available_inputs_root = self.root.find("available-inputs")
+        available_inputs_root.clear()
+        for input_art in available_inputs:
+            current_elem = ElementTree.SubElement(available_inputs_root, "input")
+            current_elem.attrib['uri'] = input_art.uri
+            current_elem.attrib['replicates'] = available_inputs[input_art]['replicates']
+        self._available_inputs = available_inputs
+
+    def get_available_inputs(self):
+        if not self._available_inputs:
+            self.get()
+            self._available_inputs = {}
+            for ai_node in self.root.find("available-inputs").findall("input"):
+                input = Artifact(self.lims, uri=ai_node.attrib['uri'])
+                self._available_inputs[input] = {}
+                if 'replicates' in ai_node.attrib:
+                    self._available_inputs[input]['replicates'] = int(ai_node.attrib['replicates'])
+
+        return self._available_inputs
+
+    def get_pools(self):
+        if not self._pools:
+            self.get()
+            self._pools = []
+
+            for idx, pool_node in enumerate(self.root.find("pooled-inputs").findall("pool")):
+                pool_name = pool_node.attrib.get('name', "Pool #{0}".format(idx+1))
+                pool_object = {'name': pool_name, 'inputs': [], 'output': None}
+                if pool_node.attrib.get('output-uri', False):
+                    pool_object['output'] = Artifact(self.lims, uri=pool_node.attrib['output-uri'])
+                for input_node in pool_node.findall("input"):
+                    input = Artifact(self.lims, uri=input_node.attrib['uri'])
+                    pool_object['inputs'].append(input)
+
+                self._pools.append(pool_object)
+
+        return self._pools
+
+    def set_pools(self, pools):
+        pool_root = self.root.find("pooled-inputs")
+        pool_root.clear()
+        for idx, pool_obj in enumerate(pools):
+            current_pool = ElementTree.SubElement(pool_root, 'pool')
+            if pool_obj.get('output', False):
+                current_pool.attrib['output-uri'] = pool_obj['output'].uri
+            current_pool.attrib['name'] = pool_obj.get('name', 'Pool #{0}'.format(idx+1))
+            for input_art in pool_obj.get('inputs', []):
+                current_input = ElementTree.SubElement(current_pool, 'input')
+                current_input.attrib['uri'] = input_art.uri
+                self._remove_available_inputs(input_art)
+
+        self._pools = pools
+
+    pools = property(get_pools, set_pools)
+    available_inputs = property(get_available_inputs, set_available_inputs)
+
+
 class StepPlacements(Entity):
     """Placements from within a step. Supports POST"""
     _placementslist = None
@@ -871,6 +951,7 @@ class Step(Entity):
     actions       = EntityDescriptor('actions', StepActions)
     placements    = EntityDescriptor('placements', StepPlacements)
     details       = EntityDescriptor('details', StepDetails)
+    step_pools         = EntityDescriptor('pools', StepPools)
 
     #program_status     = EntityDescriptor('program-status',StepProgramStatus)
 
