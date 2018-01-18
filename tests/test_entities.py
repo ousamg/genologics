@@ -4,7 +4,7 @@ from unittest import TestCase
 from xml.etree import ElementTree
 
 from genologics.entities import StepActions, Researcher, Artifact, \
-    Step, StepPlacements, Container, Stage, ReagentKit, ReagentLot, Sample, Project
+    Step, StepPlacements, StepPools, Container, Stage, ReagentKit, ReagentLot, Sample, Project
 from genologics.lims import Lims
 
 if version_info[0] == 2:
@@ -36,6 +36,25 @@ generic_artifact_xml = """<?xml version='1.0' encoding='utf-8'?>
 </workflow-stages>
 </art:artifact>"""
 
+generic_step_pools_xml = """<?xml version='1.0' encoding='utf-8'?>
+<stp:pools xmlns:stp="http://genologics.com/ri/step" uri="{url}/steps/s1/pools">
+<step uri="{url}/api/v2/steps/122-28760" rel="steps"/>
+<configuration uri="{url}/api/v2/configuration/protocols/467/steps/619">
+Step name
+</configuration>
+<pooled-inputs>
+<pool output-uri="{url}/api/v2/artifacts/o1" name="Pool #1">
+<input uri="{url}/api/v2/artifacts/a1"/>
+<input uri="{url}/api/v2/artifacts/a2"/>
+</pool>
+</pooled-inputs>
+<available-inputs>
+<input replicates="1" uri="{url}/api/v2/artifacts/a3"/>
+<input replicates="1" uri="{url}/api/v2/artifacts/a4"/>
+<input replicates="1" uri="{url}/api/v2/artifacts/a5"/>
+</available-inputs>
+</stp:pools>
+"""
 generic_step_placements_xml = """<?xml version='1.0' encoding='utf-8'?>
 <stp:placements xmlns:stp="http://genologics.com/ri/step" uri="{url}/steps/s1/placements">
   <step uri="{url}/steps/s1" />
@@ -142,6 +161,7 @@ generic_sample_creation_xml = """
 </smp:samplecreation>
 """
 
+
 class TestEntities(TestCase):
     def test_pass(self):
         pass
@@ -149,7 +169,7 @@ class TestEntities(TestCase):
 
 def elements_equal(e1, e2):
     if e1.tag != e2.tag:
-        print('Tag: %s != %s'%(e1.tag, e2.tag))
+        print('Tag: %s != %s' % (e1.tag, e2.tag))
         return False
     if e1.text and e2.text and e1.text.strip() != e2.text.strip():
         print('Text: %s != %s' % (e1.text.strip(), e2.text.strip()))
@@ -163,7 +183,8 @@ def elements_equal(e1, e2):
     if len(e1) != len(e2):
         print('length %s (%s) != length (%s) ' % (e1.tag, len(e1), e2.tag, len(e2)))
         return False
-    return all(elements_equal(c1, c2) for c1, c2 in zip(sorted(e1, key=lambda x: x.tag), sorted(e2, key=lambda x: x.tag)))
+    return all(
+        elements_equal(c1, c2) for c1, c2 in zip(sorted(e1, key=lambda x: x.tag), sorted(e2, key=lambda x: x.tag)))
 
 
 class TestEntities(TestCase):
@@ -206,6 +227,29 @@ class TestStepActions(TestEntities):
             expected_next_actions = [{'artifact': artifact, 'action': 'requeue',
                                       'step': step1, 'rework-step': step2}]
             assert s.next_actions == expected_next_actions
+
+
+class TestStepPools(TestEntities):
+    initial_step_pools = generic_step_pools_xml.format(url=url)
+
+    def test_get_pool_list(self):
+        s = StepPools(uri=self.lims.get_uri('steps', 's1', 'pools'), lims=self.lims)
+        with patch('requests.Session.get',
+                   return_value=Mock(content=self.initial_step_pools, status_code=200)):
+            output = Artifact(lims=self.lims, uri='http://testgenologics.com:4040/api/v2/artifacts/o1')
+            i1 = Artifact(lims=self.lims, uri='http://testgenologics.com:4040/api/v2/artifacts/a1')
+            i2 = Artifact(lims=self.lims, uri='http://testgenologics.com:4040/api/v2/artifacts/a2')
+            i3 = Artifact(lims=self.lims, uri='http://testgenologics.com:4040/api/v2/artifacts/a3')
+            i4 = Artifact(lims=self.lims, uri='http://testgenologics.com:4040/api/v2/artifacts/a4')
+            i5 = Artifact(lims=self.lims, uri='http://testgenologics.com:4040/api/v2/artifacts/a5')
+            assert s.pools[0]['output'] == output
+            assert s.pools[0]['name'] == "Pool #1"
+            assert len(s.pools[0]['inputs']) == 2
+            assert s.pools[0]['inputs'][0] == i1
+            assert s.pools[0]['inputs'][1] == i2
+            assert i3 in s.available_inputs
+            assert i4 in s.available_inputs
+            assert i5 in s.available_inputs
 
 
 class TestStepPlacements(TestEntities):
@@ -304,12 +348,12 @@ class TestReagentLots(TestEntities):
         with patch('genologics.lims.requests.post',
                    return_value=Mock(content=self.reagentlot_xml, status_code=201)) as patch_post:
             l = ReagentLot.create(
-                    self.lims,
-                    reagent_kit=r,
-                    name='kitname',
-                    lot_number='100',
-                    expiry_date='2020-05-01',
-                    status='ACTIVE'
+                self.lims,
+                reagent_kit=r,
+                name='kitname',
+                lot_number='100',
+                expiry_date='2020-05-01',
+                status='ACTIVE'
             )
             assert l.uri
             assert l.name == 'kitname'
@@ -338,6 +382,5 @@ class TestSample(TestEntities):
               <value>1:1</value>
             </location>
             </smp:samplecreation>'''
-            assert elements_equal(ElementTree.fromstring(patch_post.call_args_list[0][1]['data']), ElementTree.fromstring(data))
-
-
+            assert elements_equal(ElementTree.fromstring(patch_post.call_args_list[0][1]['data']),
+                                  ElementTree.fromstring(data))

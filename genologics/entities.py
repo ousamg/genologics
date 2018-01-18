@@ -899,6 +899,14 @@ class StepActions(Entity):
     next_actions = property(get_next_actions, set_next_actions)
 
 
+class StepProgramStatus(Entity):
+    """Allows custom handling of program status.
+    message supports HTML. Cross handling of EPPs is possible.
+    Supports PUT"""
+    status = StringDescriptor('status')
+    message = StringDescriptor('message')
+
+
 class ReagentKit(Entity):
     """Type of Reagent with information about the provider"""
     _URI = "reagentkits"
@@ -952,8 +960,7 @@ class Step(Entity):
     placements    = EntityDescriptor('placements', StepPlacements)
     details       = EntityDescriptor('details', StepDetails)
     step_pools         = EntityDescriptor('pools', StepPools)
-
-    #program_status     = EntityDescriptor('program-status',StepProgramStatus)
+    program_status     = EntityDescriptor('program-status', StepProgramStatus)
 
     def advance(self):
         self.root = self.lims.post(
@@ -1041,4 +1048,5 @@ StepActions.step         = EntityDescriptor('step', Step)
 Stage.workflow           = EntityDescriptor('workflow', Workflow)
 Artifact.workflow_stages = NestedEntityListDescriptor('workflow-stage', Stage, 'workflow-stages')
 Step.configuration       = EntityDescriptor('configuration', ProtocolStep)
+StepProgramStatus.configuration = EntityDescriptor('configuration', ProtocolStep)
 
