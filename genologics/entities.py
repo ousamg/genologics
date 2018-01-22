@@ -11,7 +11,8 @@ from genologics.descriptors import StringDescriptor, StringDictionaryDescriptor,
     UdtDictionaryDescriptor, ExternalidListDescriptor, EntityDescriptor, BooleanDescriptor, EntityListDescriptor, \
     StringAttributeDescriptor, StringListDescriptor, DimensionDescriptor, IntegerDescriptor, \
     PlacementDictionaryDescriptor, InputOutputMapList, LocationDescriptor, ReagentLabelList, NestedEntityListDescriptor, \
-    NestedStringListDescriptor, NestedAttributeListDescriptor, IntegerAttributeDescriptor
+    NestedStringListDescriptor, NestedAttributeListDescriptor, IntegerAttributeDescriptor, NestedStringDescriptor, \
+    NestedBooleanDescriptor
 
 try:
     from urllib.parse import urlsplit, urlparse, parse_qs, urlunparse
@@ -338,7 +339,6 @@ class Lab(Entity):
     externalids      = ExternalidListDescriptor()
     website          = StringDescriptor('website')
 
-
 class Researcher(Entity):
     "Person; client scientist or lab personnel. Associated with a lab."
 
@@ -357,10 +357,25 @@ class Researcher(Entity):
     externalids = ExternalidListDescriptor()
 
     # credentials XXX
+    username = NestedStringDescriptor('username', 'credentials')
+    account_locked = NestedBooleanDescriptor('account-locked', 'credentials')
 
     @property
     def name(self):
         return "%s %s" % (self.first_name, self.last_name)
+
+class Permission(Entity):
+    """A Clarity permission. Only supports GET"""
+    name = StringDescriptor('name')
+    action = StringDescriptor('action')
+    description = StringDescriptor('description')
+
+
+class Role(Entity):
+    """Clarity Role, hosting permissions"""
+    name = StringDescriptor('name')
+    researchers = NestedEntityListDescriptor('researcher', Researcher, 'researchers')
+    permissions = NestedEntityListDescriptor('permission', Permission, 'permissions')
 
 
 class Reagent_label(Entity):
@@ -1049,4 +1064,5 @@ Stage.workflow           = EntityDescriptor('workflow', Workflow)
 Artifact.workflow_stages = NestedEntityListDescriptor('workflow-stage', Stage, 'workflow-stages')
 Step.configuration       = EntityDescriptor('configuration', ProtocolStep)
 StepProgramStatus.configuration = EntityDescriptor('configuration', ProtocolStep)
+Researcher.roles = NestedEntityListDescriptor('role', Role, 'credentials')
 
