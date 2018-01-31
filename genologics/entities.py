@@ -318,7 +318,7 @@ class Entity(object):
     @classmethod
     def create(cls, lims, creation_tag=None, **kwargs):
         """Create an instance from attributes then post it to the LIMS"""
-        instance = cls._create(lims, creation_tag=None, **kwargs)
+        instance = cls._create(lims, creation_tag=creation_tag, **kwargs)
         data = lims.tostring(ElementTree.ElementTree(instance.root))
         instance.root = lims.post(uri=lims.get_uri(cls._URI), data=data)
         instance._uri = instance.root.attrib['uri']
@@ -487,6 +487,9 @@ class Container(Entity):
         result = self.placements.copy()
         self.lims.get_batch(list(result.values()))
         return result
+
+    def delete(self):
+        self.lims.delete(self.uri)
 
 
 class Processtype(Entity):
@@ -719,13 +722,14 @@ class StepPools(Entity):
     def _remove_available_inputs(self, input_art):
         """ removes an input from the available inputs, one replicate at a time
         """
+        self.get_available_inputs()
         rep = self._available_inputs.get(input_art, {'replicates': 0}).get('replicates', 1)
         if rep > 1:
             self._available_inputs[input_art]['replicates'] = rep - 1
         elif rep == 1:
             del(self._available_inputs[input_art])
         else:
-            raise Exception("No more replicates left for artifact {0}".format(input_art))
+            logger.info("using more inputs than replicates for input {0}".format(input_art.uri))
         self.available_inputs = self._available_inputs
 
     def set_available_inputs(self, available_inputs):
@@ -734,7 +738,7 @@ class StepPools(Entity):
         for input_art in available_inputs:
             current_elem = ElementTree.SubElement(available_inputs_root, "input")
             current_elem.attrib['uri'] = input_art.uri
-            current_elem.attrib['replicates'] = available_inputs[input_art]['replicates']
+            current_elem.attrib['replicates'] = str(available_inputs[input_art]['replicates'])
         self._available_inputs = available_inputs
 
     def get_available_inputs(self):

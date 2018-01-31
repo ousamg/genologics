@@ -157,6 +157,16 @@ class Lims(object):
                                    'accept': 'application/xml'})
         return self.parse_response(r, accept_status_codes=[200, 201, 202])
 
+    def delete(self, uri, params=dict()):
+        """sends a DELETE to the given URI.
+        Return the response XML as an ElementTree.
+        """
+        r = requests.delete(uri, params=params,
+                          auth=(self.username, self.password),
+                          headers={'content-type': 'application/xml',
+                                   'accept': 'application/xml'})
+        return self.validate_response(r, accept_status_codes=[204])
+
     def check_version(self):
         """Raise ValueError if the version for this interface
         does not match any of the versions given for the API.
@@ -364,6 +374,13 @@ class Lims(object):
             return self.get_batch(self._get_instances(Artifact, params=params))
         else:
             return self._get_instances(Artifact, params=params)
+
+    def get_container_types(self, name=None, start_index=None):
+        """Get a list of container types, filtered by keyword arguments.
+        name: Container Type name.
+        start-index: Page to retrieve, all if None."""
+        params = self._get_params(name=name, start_index=start_index)
+        return self._get_instances(Containertype, params=params)
 
     def get_containers(self, name=None, type=None,
                        state=None, last_modified=None,
