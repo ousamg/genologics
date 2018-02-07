@@ -164,7 +164,7 @@ class UdfDictionary(object):
 
     @property
     def rootnode(self):
-        if not self._rootnode:
+        if self._rootnode is None:
             self._rootnode = self.instance.root
             for rootkey in self.rootkeys:
                 self._rootnode = self._rootnode.find(rootkey)
@@ -553,6 +553,8 @@ class LocationDescriptor(TagDescriptor):
         from genologics.entities import Container
         instance.get()
         node = instance.root.find(self.tag)
+        if node is None:
+            return (None,None)
         uri = node.find('container').attrib['uri']
         return Container(instance.lims, uri=uri), node.find('value').text
 
