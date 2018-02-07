@@ -11,7 +11,8 @@ from genologics.descriptors import StringDescriptor, StringDictionaryDescriptor,
     UdtDictionaryDescriptor, ExternalidListDescriptor, EntityDescriptor, BooleanDescriptor, EntityListDescriptor, \
     StringAttributeDescriptor, StringListDescriptor, DimensionDescriptor, IntegerDescriptor, \
     PlacementDictionaryDescriptor, InputOutputMapList, LocationDescriptor, ReagentLabelList, NestedEntityListDescriptor, \
-    NestedStringListDescriptor, NestedAttributeListDescriptor, IntegerAttributeDescriptor
+    NestedStringListDescriptor, NestedAttributeListDescriptor, IntegerAttributeDescriptor, NestedStringDescriptor, \
+    NestedBooleanDescriptor
 
 try:
     from urllib.parse import urlsplit, urlparse, parse_qs, urlunparse
@@ -317,12 +318,25 @@ class Entity(object):
     @classmethod
     def create(cls, lims, creation_tag=None, **kwargs):
         """Create an instance from attributes then post it to the LIMS"""
-        instance = cls._create(lims, creation_tag=None, **kwargs)
+        instance = cls._create(lims, creation_tag=creation_tag, **kwargs)
         data = lims.tostring(ElementTree.ElementTree(instance.root))
         instance.root = lims.post(uri=lims.get_uri(cls._URI), data=data)
         instance._uri = instance.root.attrib['uri']
         return instance
 
+
+class Instrument(Entity):
+    """Lab Instrument
+    """
+    _URI = "instruments"
+    _tag = "instrument"
+    _PREFIX = "inst"
+
+    name = StringDescriptor('name')
+    type = StringDescriptor('type')
+    serial_number = StringDescriptor('serial-number')
+    expiry_date = StringDescriptor('expiry-date')
+    archived = BooleanDescriptor('archived')
 
 class Lab(Entity):
     "Lab; container of researchers."
@@ -337,7 +351,6 @@ class Lab(Entity):
     udt              = UdtDictionaryDescriptor()
     externalids      = ExternalidListDescriptor()
     website          = StringDescriptor('website')
-
 
 class Researcher(Entity):
     "Person; client scientist or lab personnel. Associated with a lab."
@@ -357,10 +370,25 @@ class Researcher(Entity):
     externalids = ExternalidListDescriptor()
 
     # credentials XXX
+    username = NestedStringDescriptor('username', 'credentials')
+    account_locked = NestedBooleanDescriptor('account-locked', 'credentials')
 
     @property
     def name(self):
         return "%s %s" % (self.first_name, self.last_name)
+
+class Permission(Entity):
+    """A Clarity permission. Only supports GET"""
+    name = StringDescriptor('name')
+    action = StringDescriptor('action')
+    description = StringDescriptor('description')
+
+
+class Role(Entity):
+    """Clarity Role, hosting permissions"""
+    name = StringDescriptor('name')
+    researchers = NestedEntityListDescriptor('researcher', Researcher, 'researchers')
+    permissions = NestedEntityListDescriptor('permission', Permission, 'permissions')
 
 
 class Reagent_label(Entity):
@@ -473,6 +501,9 @@ class Container(Entity):
         self.lims.get_batch(list(result.values()))
         return result
 
+    def delete(self):
+        self.lims.delete(self.uri)
+
 
 class Processtype(Entity):
     _TAG = 'process-type'
@@ -517,8 +548,8 @@ class Process(Entity):
     udt               = UdtDictionaryDescriptor()
     files             = EntityListDescriptor(nsmap('file:file'), File)
     process_parameter = StringDescriptor('process-parameter')
+    instrument        = EntityDescriptor('instrument', Instrument)
 
-    # instrument XXX
     # process_parameters XXX
 
     def outputs_per_input(self, inart, ResultFile=False, SharedResultFile=False, Analyte=False):
@@ -704,13 +735,14 @@ class StepPools(Entity):
     def _remove_available_inputs(self, input_art):
         """ removes an input from the available inputs, one replicate at a time
         """
+        self.get_available_inputs()
         rep = self._available_inputs.get(input_art, {'replicates': 0}).get('replicates', 1)
         if rep > 1:
             self._available_inputs[input_art]['replicates'] = rep - 1
         elif rep == 1:
             del(self._available_inputs[input_art])
         else:
-            raise Exception("No more replicates left for artifact {0}".format(input_art))
+            logger.info("using more inputs than replicates for input {0}".format(input_art.uri))
         self.available_inputs = self._available_inputs
 
     def set_available_inputs(self, available_inputs):
@@ -719,7 +751,7 @@ class StepPools(Entity):
         for input_art in available_inputs:
             current_elem = ElementTree.SubElement(available_inputs_root, "input")
             current_elem.attrib['uri'] = input_art.uri
-            current_elem.attrib['replicates'] = available_inputs[input_art]['replicates']
+            current_elem.attrib['replicates'] = str(available_inputs[input_art]['replicates'])
         self._available_inputs = available_inputs
 
     def get_available_inputs(self):
@@ -784,7 +816,7 @@ class StepPlacements(Entity):
             for node in self.root.find('output-placements').findall('output-placement'):
                 input = Artifact(self.lims, uri=node.attrib['uri'])
                 location = (None, None)
-                if node.find('location'):
+                if node.find('location') is not None:
                     location = (
                         Container(self.lims, uri=node.find('location').find('container').attrib['uri']),
                         node.find('location').find('value').text
@@ -963,6 +995,7 @@ class Step(Entity):
     program_status     = EntityDescriptor('program-status', StepProgramStatus)
 
     def advance(self):
+        self.get()
         self.root = self.lims.post(
             uri="{}/advance".format(self.uri),
             data=self.lims.tostring(ElementTree.ElementTree(self.root))
@@ -1035,6 +1068,7 @@ class ReagentType(Entity):
                     if child.attrib.get("name") == "Sequence":
                         self.sequence = child.attrib.get("value")
 
+
 class Queue(Entity):
     """Queue of a given step"""
     _URI = "queues"
@@ -1049,4 +1083,5 @@ Stage.workflow           = EntityDescriptor('workflow', Workflow)
 Artifact.workflow_stages = NestedEntityListDescriptor('workflow-stage', Stage, 'workflow-stages')
 Step.configuration       = EntityDescriptor('configuration', ProtocolStep)
 StepProgramStatus.configuration = EntityDescriptor('configuration', ProtocolStep)
+Researcher.roles = NestedEntityListDescriptor('role', Role, 'credentials')
 

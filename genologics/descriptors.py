@@ -164,7 +164,7 @@ class UdfDictionary(object):
 
     @property
     def rootnode(self):
-        if not self._rootnode:
+        if self._rootnode is None:
             self._rootnode = self.instance.root
             for rootkey in self.rootkeys:
                 self._rootnode = self._rootnode.find(rootkey)
@@ -431,6 +431,45 @@ class EntityListDescriptor(EntityDescriptor):
 
         return result
 
+class NestedBooleanDescriptor(TagDescriptor):
+    def __init__(self, tag, *args):
+        super(NestedBooleanDescriptor, self).__init__(tag)
+        self.rootkeys = args
+
+    def __get__(self, instance, cls):
+        instance.get()
+        result = None
+        rootnode = instance.root
+        for rootkey in self.rootkeys:
+            rootnode = rootnode.find(rootkey)
+        result = rootnode.find(self.tag).text.lower() == 'true'
+        return result
+
+    def __set__(self, instance, value):
+        rootnode = instance.root
+        for rootkey in self.rootkeys:
+            rootnode = rootnode.find(rootkey)
+        rootnode.find(self.tag).text = str(value).lower()
+
+class NestedStringDescriptor(TagDescriptor):
+    def __init__(self, tag, *args):
+        super(NestedStringDescriptor, self).__init__(tag)
+        self.rootkeys = args
+
+    def __get__(self, instance, cls):
+        instance.get()
+        result = None
+        rootnode = instance.root
+        for rootkey in self.rootkeys:
+            rootnode = rootnode.find(rootkey)
+        result = rootnode.find(self.tag).text
+        return result
+
+    def __set__(self, instance, value):
+        rootnode = instance.root
+        for rootkey in self.rootkeys:
+            rootnode = rootnode.find(rootkey)
+        rootnode.find(self.tag).text = value
 
 class NestedAttributeListDescriptor(StringAttributeDescriptor):
     """An instance yielding a list of dictionnaries of attributes
@@ -514,6 +553,8 @@ class LocationDescriptor(TagDescriptor):
         from genologics.entities import Container
         instance.get()
         node = instance.root.find(self.tag)
+        if node is None:
+            return (None,None)
         uri = node.find('container').attrib['uri']
         return Container(instance.lims, uri=uri), node.find('value').text
 
@@ -572,3 +613,4 @@ class InputOutputMapList(BaseDescriptor):
         if node is not None:
             result['parent-process'] = Process(lims, node.attrib['uri'])
         return result
+
