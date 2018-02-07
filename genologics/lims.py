@@ -472,6 +472,11 @@ class Lims(object):
                                   start_index=start_index)
         return self._get_instances(ReagentLot, params=params)
 
+    def get_instruments(self, name=None):
+        """Returns a list of Instruments, can be filtered by name"""
+        params = self._get_params(name=name)
+        return self._get_instances(Instrument, params=params)
+
     def _get_params(self, **kwargs):
         "Convert keyword arguments to a kwargs dictionary."
         result = dict()

@@ -535,8 +535,8 @@ class Process(Entity):
     udt               = UdtDictionaryDescriptor()
     files             = EntityListDescriptor(nsmap('file:file'), File)
     process_parameter = StringDescriptor('process-parameter')
+    instrument        = EntityDescriptor('instrument', Instrument)
 
-    # instrument XXX
     # process_parameters XXX
 
     def outputs_per_input(self, inart, ResultFile=False, SharedResultFile=False, Analyte=False):
@@ -803,7 +803,7 @@ class StepPlacements(Entity):
             for node in self.root.find('output-placements').findall('output-placement'):
                 input = Artifact(self.lims, uri=node.attrib['uri'])
                 location = (None, None)
-                if node.find('location'):
+                if node.find('location') is not None:
                     location = (
                         Container(self.lims, uri=node.find('location').find('container').attrib['uri']),
                         node.find('location').find('value').text
@@ -982,6 +982,7 @@ class Step(Entity):
     program_status     = EntityDescriptor('program-status', StepProgramStatus)
 
     def advance(self):
+        self.get()
         self.root = self.lims.post(
             uri="{}/advance".format(self.uri),
             data=self.lims.tostring(ElementTree.ElementTree(self.root))
@@ -1053,6 +1054,20 @@ class ReagentType(Entity):
                 for child in t.findall("attribute"):
                     if child.attrib.get("name") == "Sequence":
                         self.sequence = child.attrib.get("value")
+
+
+class Instrument(Entity):
+    """Lab Instrument
+    """
+    _URI = "instruments"
+    _tag = "instrument"
+    _PREFIX = "inst"
+
+    name = StringDescriptor('name')
+    type = StringDescriptor('type')
+    serial_number = StringDescriptor('serial-number')
+    expiry_date = StringDescriptor('expiry-date')
+    archived = BooleanDescriptor('archived')
 
 class Queue(Entity):
     """Queue of a given step"""
