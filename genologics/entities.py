@@ -325,6 +325,19 @@ class Entity(object):
         return instance
 
 
+class Instrument(Entity):
+    """Lab Instrument
+    """
+    _URI = "instruments"
+    _tag = "instrument"
+    _PREFIX = "inst"
+
+    name = StringDescriptor('name')
+    type = StringDescriptor('type')
+    serial_number = StringDescriptor('serial-number')
+    expiry_date = StringDescriptor('expiry-date')
+    archived = BooleanDescriptor('archived')
+
 class Lab(Entity):
     "Lab; container of researchers."
 
@@ -1055,19 +1068,6 @@ class ReagentType(Entity):
                     if child.attrib.get("name") == "Sequence":
                         self.sequence = child.attrib.get("value")
 
-
-class Instrument(Entity):
-    """Lab Instrument
-    """
-    _URI = "instruments"
-    _tag = "instrument"
-    _PREFIX = "inst"
-
-    name = StringDescriptor('name')
-    type = StringDescriptor('type')
-    serial_number = StringDescriptor('serial-number')
-    expiry_date = StringDescriptor('expiry-date')
-    archived = BooleanDescriptor('archived')
 
 class Queue(Entity):
     """Queue of a given step"""
