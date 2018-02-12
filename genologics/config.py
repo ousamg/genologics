@@ -2,7 +2,12 @@ import os
 import sys
 import warnings
 
-import ConfigParser
+try:
+    from ConfigParser import SafeConfigParser
+except ImportError:
+    from configparser import SafeConfigParser
+
+
 
 '''
 Usage:
@@ -16,7 +21,7 @@ BASEURI, USERNAME, PASSWORD, VERSION, MAIN_LOG = config.load_config(specified_co
 spec_config = None
 
 def get_config_info(config_file):
-    config = ConfigParser.SafeConfigParser()
+    config = SafeConfigParser()
     config.readfp(open(config_file))
     
     
@@ -40,7 +45,7 @@ def load_config(specified_config = None):
     if specified_config != None:
         config_file = specified_config
     else:
-        config = ConfigParser.SafeConfigParser()
+        config = SafeConfigParser()
         try:
             conf_file = config.read([os.path.expanduser('~/.genologicsrc'), '.genologicsrc',
                         'genologics.conf', 'genologics.cfg', '/etc/genologics.conf'])
@@ -49,8 +54,7 @@ def load_config(specified_config = None):
             config_file = conf_file[0]
 
         except:
-            warnings.warn("Please make sure you've created or indicated your own Genologics configuration file (i.e: ~/.genologicsrc) as stated in README.md")
-            sys.exit(-1)
+            return None, None, None, None, None
 
     BASEURI, USERNAME, PASSWORD, VERSION, MAIN_LOG = get_config_info(config_file)
 
