@@ -7,11 +7,6 @@ import glob
 # Fetch version from git tags.
 # if git is not available (PyPi package), use stored version.py.
 
-try:
-    version = subprocess.Popen(["git", "describe", "--abbrev=0"],stdout=subprocess.PIPE, universal_newlines=True).communicate()[0].rstrip()
-    version = version.decode("utf-8")
-except:
-    version = __version__
 
 try:
     with open("requirements.txt") as rq:
@@ -20,7 +15,7 @@ except:
     requires=["requests"]
 
 setup(name='genologics',
-      version=version,
+      version=__version__,
       description="Python interface to the GenoLogics LIMS (Laboratory Information Management System) server via its REST API.",
       long_description="""A basic module for interacting with the GenoLogics LIMS server via its REST API.
                           The goal is to provide simple access to the most common entities and their attributes in a reasonably Pythonic fashion.""",
