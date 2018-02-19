@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from xml.etree import ElementTree
+import requests
 
 
 """
@@ -20,17 +21,23 @@ XML_DICT = {}
 
 
 def patched_get(*args, **kwargs):
+    params=None
     if 'uri' in kwargs:
         uri=kwargs['uri']
     else:
         for arg in args:
             if isinstance(arg, str) or isinstance(arg, unicode):
                 uri = arg
+    if 'params' in kwargs:
+        params=kwargs['params']
+    else:
+        for arg in args:
+            if isinstance(arg, dict):
+                params = arg
+    r = requests.request('GET', url=uri, params=params)
     if not XML_DICT:
         raise Exception("You need to update genologics.test_utils.XML_DICT before using this function")
-    if "?" in uri:
-        uri = uri[:uri.index("?")]
     try:
-        return ElementTree.fromstring(XML_DICT[uri])
+        return ElementTree.fromstring(XML_DICT[r.url])
     except KeyError:
-        raise Exception("Cannot find mocked xml for uri {0}".format(uri))
+        raise Exception("Cannot find mocked xml for uri {0}".format(r.url))

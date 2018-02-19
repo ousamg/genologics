@@ -87,6 +87,7 @@ class Lims(object):
             raise type(e)("{0}, Error trying to reach {1}".format(e.message, uri))
 
         else:
+            print r.url
             return self.parse_response(r)
 
     def get_file_contents(self, id=None, uri=None):
