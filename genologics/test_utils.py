@@ -34,7 +34,7 @@ def patched_get(*args, **kwargs):
         for arg in args:
             if isinstance(arg, dict):
                 params = arg
-    r = requests.request('GET', url=uri, params=params)
+    r = requests.Request(method='GET', url=uri, params=params)
     if not XML_DICT:
         raise Exception("You need to update genologics.test_utils.XML_DICT before using this function")
     try:
