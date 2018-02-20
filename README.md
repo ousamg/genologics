@@ -2,16 +2,16 @@
 
 [![PyPI version](https://badge.fury.io/py/genologics.svg)](http://badge.fury.io/py/genologics)
 
-A basic module for interacting with the GenoLogics LIMS server via
+A basic module for interacting with the Illumina Basespace Clarity LIMS server via
 its REST API. The goal is to provide simple access to the most common
 entities and their attributes in a reasonably Pythonic fashion.
 
 Supported python versions :
 
-2.6
-2.7 (recommended)
-3.4
-3.5
+2.6   
+2.7 (recommended)  
+3.4  
+3.5  
 
 ### Design
 

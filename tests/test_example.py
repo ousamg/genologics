@@ -13,7 +13,7 @@ else:
 
 
 
-test_utils.XML_DICT={"BLA1":"""
+test_utils.XML_DICT={"https://test.claritylims.com/api/v2/projects/BLA1":"""
 <prj:project xmlns:udf="http://genologics.com/ri/userdefined" xmlns:ri="http://genologics.com/ri" xmlns:file="http://genologics.com/ri/file" xmlns:prj="http://genologics.com/ri/project" uri="https://test.claritylims.com/api/v2/projects/BLA1" limsid="BLA1">
 <name>Test</name>
 <open-date>2016-04-20</open-date>

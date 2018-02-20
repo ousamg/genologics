@@ -13,6 +13,7 @@ try:
 except ImportError:
     from urlparse import urlsplit, urlparse, parse_qs, urlunparse
 
+from decimal import Decimal
 import datetime
 import time
 from xml.etree import ElementTree
@@ -246,7 +247,7 @@ class UdfDictionary(object):
                 if not self._is_string(value):
                     raise TypeError('Text UDF requires str or unicode value')
             elif vtype == 'numeric':
-                if not isinstance(value, (int, float)):
+                if not isinstance(value, (int, float, Decimal)):
                     raise TypeError('Numeric UDF requires int or float value')
                 value = str(value)
             elif vtype == 'boolean':
@@ -274,7 +275,7 @@ class UdfDictionary(object):
             elif isinstance(value, bool):
                 vtype = 'Boolean'
                 value = value and 'true' or 'false'
-            elif isinstance(value, (int, float)):
+            elif isinstance(value, (int, float, Decimal)):
                 vtype = 'Numeric'
                 value = str(value)
             elif isinstance(value, datetime.date):

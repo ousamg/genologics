@@ -16,8 +16,8 @@ except:
 
 setup(name='genologics',
       version=__version__,
-      description="Python interface to the GenoLogics LIMS (Laboratory Information Management System) server via its REST API.",
-      long_description="""A basic module for interacting with the GenoLogics LIMS server via its REST API.
+      description="Python interface to the Illumina Basespace Clarity LIMS (Laboratory Information Management System) server via its REST API.",
+      long_description="""A basic module for interacting with the Illumina Basespace Clarity LIMS server via its REST API.
                           The goal is to provide simple access to the most common entities and their attributes in a reasonably Pythonic fashion.""",
       classifiers=[
 	"Development Status :: 4 - Beta",
