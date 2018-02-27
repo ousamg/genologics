@@ -298,8 +298,10 @@ class Entity(object):
         self.lims.post(self.uri, data)
 
     @classmethod
-    def _create(cls, lims, creation_tag=None, **kwargs):
+    def _create(cls, lims, creation_tag=None, udfs=None, **kwargs):
         """Create an instance from attributes and return it"""
+        if not udfs:
+            udfs={}
         instance = cls(lims, _create_new=True)
         if creation_tag:
             instance.root = ElementTree.Element(nsmap(cls._PREFIX + ':' + creation_tag))
@@ -307,6 +309,8 @@ class Entity(object):
             instance.root = ElementTree.Element(nsmap(cls._PREFIX + ':' + cls._TAG))
         else:
             instance.root = ElementTree.Element(nsmap(cls._PREFIX + ':' + cls.__name__.lower()))
+        for key in udfs:
+            instance.udf[key]=udfs[key]
         for attribute in kwargs:
             if hasattr(instance, attribute):
                 setattr(instance, attribute, kwargs.get(attribute))
@@ -329,7 +333,7 @@ class Instrument(Entity):
     """Lab Instrument
     """
     _URI = "instruments"
-    _tag = "instrument"
+    _TAG = "instrument"
     _PREFIX = "inst"
 
     name = StringDescriptor('name')
@@ -415,6 +419,7 @@ class Project(Entity):
     "Project concerning a number of samples; associated with a researcher."
 
     _URI = 'projects'
+    _TAG = 'project'
     _PREFIX = 'prj'
 
     name         = StringDescriptor('name')
@@ -433,6 +438,7 @@ class Sample(Entity):
     "Customer's sample to be analyzed; associated with a project."
 
     _URI = 'samples'
+    _TAG = 'sample'
     _PREFIX = 'smp'
 
     name           = StringDescriptor('name')
@@ -450,11 +456,11 @@ class Sample(Entity):
 
 
     @classmethod
-    def create(cls, lims, container, position, **kwargs):
+    def create(cls, lims, container, position, udfs, **kwargs):
         """Create an instance of Sample from attributes then post it to the LIMS"""
         if not isinstance(container, Container):
             raise TypeError('%s is not of type Container'%container)
-        instance = super(Sample, cls)._create(lims, creation_tag='samplecreation', **kwargs)
+        instance = super(Sample, cls)._create(lims, creation_tag='samplecreation',udfs=udfs, **kwargs)
 
         location = ElementTree.SubElement(instance.root, 'location')
         ElementTree.SubElement(location, 'container', dict(uri=container.uri))
@@ -484,6 +490,7 @@ class Container(Entity):
     "Container for analyte artifacts."
 
     _URI = 'containers'
+    _TAG = 'container'
     _PREFIX = 'con'
 
     name           = StringDescriptor('name')
@@ -651,6 +658,7 @@ class Artifact(Entity):
     "Any process input or output; analyte or file."
 
     _URI = 'artifacts'
+    _TAG = 'artifact'
     _PREFIX = 'art'
 
     name           = StringDescriptor('name')

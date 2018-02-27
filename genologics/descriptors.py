@@ -417,6 +417,8 @@ class EntityDescriptor(TagDescriptor):
             node = ElementTree.Element(self.tag)
             instance.root.append(node)
         node.attrib['uri'] = value.uri
+        if value._TAG in ['project', 'sample', 'artifact', 'container']:
+            node.attrib['limsid'] = value.id
 
 
 class EntityListDescriptor(EntityDescriptor):
