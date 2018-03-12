@@ -1022,7 +1022,7 @@ class ProtocolStep(Entity):
     _TAG = 'step'
 
     name                = StringAttributeDescriptor("name")
-    type                = EntityDescriptor('type', Processtype)
+    type                = EntityDescriptor('process-type', Processtype)
     permittedcontainers = NestedStringListDescriptor('container-type', 'container-types')
     queue_fields        = NestedAttributeListDescriptor('queue-field', 'queue-fields')
     step_fields         = NestedAttributeListDescriptor('step-field', 'step-fields')
