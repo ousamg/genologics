@@ -456,8 +456,10 @@ class Sample(Entity):
 
 
     @classmethod
-    def create(cls, lims, container, position, udfs, **kwargs):
+    def create(cls, lims, container, position, udfs=None, **kwargs):
         """Create an instance of Sample from attributes then post it to the LIMS"""
+        if udfs is None:
+            udfs = {}
         if not isinstance(container, Container):
             raise TypeError('%s is not of type Container'%container)
         instance = super(Sample, cls)._create(lims, creation_tag='samplecreation',udfs=udfs, **kwargs)
