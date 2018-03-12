@@ -376,7 +376,7 @@ class TestSample(TestEntities):
             data = '''<?xml version=\'1.0\' encoding=\'utf-8\'?>
             <smp:samplecreation xmlns:smp="http://genologics.com/ri/sample">
             <name>s1</name>
-            <project uri="project" />
+            <project uri="project" limsid="project" />
             <location>
               <container uri="container" />
               <value>1:1</value>
