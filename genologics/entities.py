@@ -12,7 +12,7 @@ from genologics.descriptors import StringDescriptor, StringDictionaryDescriptor,
     StringAttributeDescriptor, StringListDescriptor, DimensionDescriptor, IntegerDescriptor, \
     PlacementDictionaryDescriptor, InputOutputMapList, LocationDescriptor, ReagentLabelList, NestedEntityListDescriptor, \
     NestedStringListDescriptor, NestedAttributeListDescriptor, IntegerAttributeDescriptor, NestedStringDescriptor, \
-    NestedBooleanDescriptor
+    NestedBooleanDescriptor, MultiPageNestedEntityListDescriptor
 
 try:
     from urllib.parse import urlsplit, urlparse, parse_qs, urlunparse
@@ -1080,12 +1080,13 @@ class ReagentType(Entity):
 
 
 class Queue(Entity):
-    """Queue of a given step"""
+    """Queue of a given step. Will recursively get all the pages of artifacts, and therefore, can be quite slow to load"""
     _URI = "queues"
     _TAG= "queue"
     _PREFIX = "que"
 
-    artifacts=NestedEntityListDescriptor("artifact", Artifact, "artifacts")
+
+    artifacts = MultiPageNestedEntityListDescriptor("artifact", Artifact, "artifacts")
 
 Sample.artifact          = EntityDescriptor('artifact', Artifact)
 StepActions.step         = EntityDescriptor('step', Step)
