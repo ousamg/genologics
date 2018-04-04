@@ -12,7 +12,8 @@ from genologics.descriptors import StringDescriptor, StringDictionaryDescriptor,
     StringAttributeDescriptor, StringListDescriptor, DimensionDescriptor, IntegerDescriptor, \
     PlacementDictionaryDescriptor, InputOutputMapList, LocationDescriptor, ReagentLabelList, NestedEntityListDescriptor, \
     NestedStringListDescriptor, NestedAttributeListDescriptor, IntegerAttributeDescriptor, NestedStringDescriptor, \
-    NestedBooleanDescriptor, MultiPageNestedEntityListDescriptor
+    NestedBooleanDescriptor, MultiPageNestedEntityListDescriptor, ProcessTypeParametersDescriptor, \
+    ProcessTypeProcessInputDescriptor, ProcessTypeProcessOutputDescriptor, NamedStringDescriptor
 
 try:
     from urllib.parse import urlsplit, urlparse, parse_qs, urlunparse
@@ -297,6 +298,9 @@ class Entity(object):
         data = self.lims.tostring(ElementTree.ElementTree(self.root))
         self.lims.post(self.uri, data)
 
+    def xml(self):
+        return self.lims.tostring(ElementTree.ElementTree(self.root))
+
     @classmethod
     def _create(cls, lims, creation_tag=None, udfs=None, **kwargs):
         """Create an instance from attributes and return it"""
@@ -514,13 +518,6 @@ class Container(Entity):
         self.lims.delete(self.uri)
 
 
-class Processtype(Entity):
-    _TAG = 'process-type'
-    _URI = 'processtypes'
-    _PREFIX = 'ptp'
-
-    name = StringAttributeDescriptor('name')
-    # XXX
 
 
 class Udfconfig(Entity):
@@ -538,9 +535,28 @@ class Udfconfig(Entity):
     is_required                   = BooleanDescriptor('is-required')
     is_deviation                  = BooleanDescriptor('is-deviation') 
     is_controlled_vocabulary      = BooleanDescriptor('is-controlled-vocabulary')
-    presets                       = StringListDescriptor('preset') 
+    presets                       = StringListDescriptor('preset')
 
 
+class Processtype(Entity):
+    _TAG = 'process-type'
+    _URI = 'processtypes'
+    _PREFIX = 'ptp'
+
+    def __init__(self, lims, uri=None, id=None, _create_new=False):
+        super(Processtype, self).__init__(lims, uri, id, _create_new)
+        self.parameters = ProcessTypeParametersDescriptor(self)
+
+    name = StringAttributeDescriptor('name')
+    field_definition = EntityListDescriptor('field-definition', Udfconfig)
+    process_inputs = ProcessTypeProcessInputDescriptor()
+    process_outputs = ProcessTypeProcessOutputDescriptor()
+    process_type_attribute = NamedStringDescriptor('process-type-attribute')
+
+
+    @property
+    def process_input(self):
+        return self.process_inputs[0]
 
 class Process(Entity):
     "Process (instance of Processtype) executed producing ouputs from inputs."
