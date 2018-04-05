@@ -542,7 +542,6 @@ class MultiPageNestedEntityListDescriptor(EntityListDescriptor):
         self.klass = klass
         self.tag = tag
         self.rootkeys = args
-        self.max_depth = 10
 
     def __get__(self, instance, cls):
         instance.get()
@@ -644,3 +643,76 @@ class InputOutputMapList(BaseDescriptor):
             result['parent-process'] = Process(lims, node.attrib['uri'])
         return result
 
+
+class ProcessTypeParametersDescriptor(object):
+    def __getitem__(self, index):
+        return self.params[index]
+
+    def __setitem__(self, index, value):
+        self.params[index] = value
+
+    def __delitem__(self, index):
+        del(self.params[index])
+
+    def __init__(self, pt_instance):
+        from genologics.internal_classes import ProcessTypeParameter
+        pt_instance.get()
+        self.tag = 'parameter'
+        self.params = []
+        for node in pt_instance.root.findall(self.tag):
+            self.params.append(ProcessTypeParameter(pt_instance, node))
+
+
+class ProcessTypeProcessInputDescriptor(TagDescriptor):
+
+    def __getitem__(self, index):
+        return self._inputs[index]
+
+    def __setitem__(self, index, value):
+        self._inputs[index] = value
+
+    def __delitem__(self, index):
+        del(self._inputs[index])
+
+    def __init__(self):
+        self._inputs=[]
+        self.tag = 'process-input'
+        super(ProcessTypeProcessInputDescriptor, self).__init__(tag=self.tag)
+
+    def __get__(self, instance, owner):
+        from genologics.internal_classes import ProcessTypeProcessInput
+        for node in  instance.root.findall(self.tag):
+            self._inputs.append(ProcessTypeProcessInput(instance, node))
+        return self
+
+
+class ProcessTypeProcessOutputDescriptor(TagDescriptor):
+
+    def __getitem__(self, index):
+        return self._inputs[index]
+
+    def __setitem__(self, index, value):
+        self._inputs[index] = value
+
+    def __delitem__(self, index):
+        del(self._inputs[index])
+
+    def __init__(self):
+        self._inputs=[]
+        self.tag = 'process-output'
+        super(ProcessTypeProcessOutputDescriptor, self).__init__(tag=self.tag)
+
+    def __get__(self, instance, owner):
+        from genologics.internal_classes import ProcessTypeProcessOutput
+        for node in  instance.root.findall(self.tag):
+            self._inputs.append(ProcessTypeProcessOutput(instance, node))
+        return self
+
+
+class NamedStringDescriptor(TagDescriptor):
+
+    def __get__(self, instance, owner):
+        self._internals={}
+        for node in instance.root.findall(self.tag):
+            self._internals[node.attrib['name']] = node.text
+        return self._internals
