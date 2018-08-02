@@ -1043,8 +1043,8 @@ class ProtocolStep(Entity):
     queue_fields        = NestedAttributeListDescriptor('queue-field', 'queue-fields')
     step_fields         = NestedAttributeListDescriptor('step-field', 'step-fields')
     sample_fields       = NestedAttributeListDescriptor('sample-field', 'sample-fields')
-    step_properties     = NestedAttributeListDescriptor('step_property', 'step_properties')
-    epp_triggers        = NestedAttributeListDescriptor('epp_trigger', 'epp_triggers')
+    step_properties     = NestedAttributeListDescriptor('step-property', 'step-properties')
+    epp_triggers        = NestedAttributeListDescriptor('epp-trigger', 'epp-triggers')
 
 
 class Protocol(Entity):
