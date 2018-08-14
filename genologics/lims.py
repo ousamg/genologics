@@ -36,7 +36,7 @@ if version_info[:2] < (2,7):
     ElementTree.ParseError = expat.ExpatError
     p26_write = ElementTree.ElementTree.write
     def write_with_xml_declaration(self, file, encoding, xml_declaration):
-        assert xml_declaration is True # Support our use case only 
+        assert xml_declaration is True # Support our use case only
         file.write("<?xml version='1.0' encoding='utf-8'?>\n")
         p26_write(self, file, encoding=encoding)
     ElementTree.ElementTree.write = write_with_xml_declaration
@@ -55,7 +55,7 @@ class Lims(object):
                     For example: https://genologics.scilifelab.se:8443/
         username: The account name of the user to login as.
         password: The password for the user account to login as.
-        version: The optional LIMS API version, by default 'v2' 
+        version: The optional LIMS API version, by default 'v2'
         """
         self.baseuri = baseuri.rstrip('/') + '/'
         self.username = username
@@ -213,7 +213,7 @@ class Lims(object):
     def get_udfs(self, name=None, attach_to_name=None, attach_to_category=None, start_index=None, add_info=False):
         """Get a list of udfs, filtered by keyword arguments.
         name: name of udf
-        attach_to_name: item in the system, to wich the udf is attached, such as 
+        attach_to_name: item in the system, to wich the udf is attached, such as
             Sample, Project, Container, or the name of a process.
         attach_to_category: If 'attach_to_name' is the name of a process, such as 'CaliperGX QC (DNA)',
              then you need to set attach_to_category='ProcessType'. Must not be provided otherwise.
@@ -538,6 +538,11 @@ class Lims(object):
         """
         if not instances:
             return []
+
+        ALLOWED_TAGS = ('artifact', 'container', 'file', 'sample')
+        if instances[0]._TAG not in ALLOWED_TAGS:
+            raise TypeError("Cannot retrieve batch for instances of type '{}'".format(instances[0]._TAG))
+
         root = ElementTree.Element(nsmap('ri:links'))
         needs_request = False
         instance_map = {}
@@ -562,6 +567,10 @@ class Lims(object):
 
         if not instances:
             return
+
+        ALLOWED_TAGS = ('artifact', 'container', 'file', 'sample')
+        if instances[0]._TAG not in ALLOWED_TAGS:
+            raise TypeError("Cannot update batch for instances of type '{}'".format(instances[0]._TAG))
 
         root = None  # XML root element for batch request
 
