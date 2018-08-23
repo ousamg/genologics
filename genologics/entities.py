@@ -533,7 +533,7 @@ class Udfconfig(Entity):
     show_in_tables                = BooleanDescriptor('show-in-tables')
     is_editable                   = BooleanDescriptor('is-editable')
     is_required                   = BooleanDescriptor('is-required')
-    is_deviation                  = BooleanDescriptor('is-deviation') 
+    is_deviation                  = BooleanDescriptor('is-deviation')
     is_controlled_vocabulary      = BooleanDescriptor('is-controlled-vocabulary')
     presets                       = StringListDescriptor('preset')
 
@@ -641,8 +641,8 @@ class Process(Entity):
         return [a for a in artifacts if a.output_type == 'ResultFile']
 
     def analytes(self):
-        """Retreving the output Analytes of the process, if existing. 
-        If the process is not producing any output analytes, the input 
+        """Retreving the output Analytes of the process, if existing.
+        If the process is not producing any output analytes, the input
         analytes are returned. Input/Output is returned as a information string.
         Makes aggregate processes and normal processes look the same."""
         info = 'Output'
@@ -1012,13 +1012,15 @@ class Step(Entity):
     _URI = 'steps'
     _PREFIX = 'stp'
 
-    current_state = StringAttributeDescriptor('current-state')
-    _reagent_lots = EntityDescriptor('reagent-lots', StepReagentLots)
-    actions       = EntityDescriptor('actions', StepActions)
-    placements    = EntityDescriptor('placements', StepPlacements)
-    details       = EntityDescriptor('details', StepDetails)
-    step_pools         = EntityDescriptor('pools', StepPools)
-    program_status     = EntityDescriptor('program-status', StepProgramStatus)
+    current_state  = StringAttributeDescriptor('current-state')
+    date_started   = DateTimeDescriptor('date-started')
+    date_completed = DateTimeDescriptor('date-completed')
+    _reagent_lots  = EntityDescriptor('reagent-lots', StepReagentLots)
+    actions        = EntityDescriptor('actions', StepActions)
+    placements     = EntityDescriptor('placements', StepPlacements)
+    details        = EntityDescriptor('details', StepDetails)
+    step_pools     = EntityDescriptor('pools', StepPools)
+    program_status = EntityDescriptor('program-status', StepProgramStatus)
 
     def advance(self):
         self.get()
@@ -1111,4 +1113,3 @@ Artifact.workflow_stages = NestedEntityListDescriptor('workflow-stage', Stage, '
 Step.configuration       = EntityDescriptor('configuration', ProtocolStep)
 StepProgramStatus.configuration = EntityDescriptor('configuration', ProtocolStep)
 Researcher.roles = NestedEntityListDescriptor('role', Role, 'credentials')
-
