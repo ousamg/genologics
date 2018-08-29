@@ -82,7 +82,7 @@ class StringAttributeDescriptor(TagDescriptor):
         instance.get()
         instance.root.attrib[self.tag] = value
 
-class DateTimeDescriptor(TagDescriptor):
+class DateTimeDescriptor(StringDescriptor):
     """An instance attribute containing a formatted dateTime string value
     """
 

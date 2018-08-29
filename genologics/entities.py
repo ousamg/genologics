@@ -13,7 +13,7 @@ from genologics.descriptors import StringDescriptor, StringDictionaryDescriptor,
     PlacementDictionaryDescriptor, InputOutputMapList, LocationDescriptor, ReagentLabelList, NestedEntityListDescriptor, \
     NestedStringListDescriptor, NestedAttributeListDescriptor, IntegerAttributeDescriptor, NestedStringDescriptor, \
     NestedBooleanDescriptor, MultiPageNestedEntityListDescriptor, ProcessTypeParametersDescriptor, \
-    ProcessTypeProcessInputDescriptor, ProcessTypeProcessOutputDescriptor, NamedStringDescriptor
+    ProcessTypeProcessInputDescriptor, ProcessTypeProcessOutputDescriptor, NamedStringDescriptor, DateTimeDescriptor
 
 try:
     from urllib.parse import urlsplit, urlparse, parse_qs, urlunparse
