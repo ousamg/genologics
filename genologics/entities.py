@@ -901,8 +901,7 @@ class StepActions(Entity):
     """Actions associated with a step"""
     _escalation = None
 
-    @property
-    def escalation(self):
+    def get_escalation(self):
         if not self._escalation:
             self.get()
             self._escalation = {}
@@ -932,6 +931,21 @@ class StepActions(Entity):
                     self._escalation['artifacts'].extend(art)
         return self._escalation
 
+    def set_escalation(self, artifacts, comment, reviewer_uri, requester=None):
+        self.get()
+        escalation = ElementTree.SubElement(self.root, 'escalation')
+        esc_arts = ElementTree.SubElement(escalation, 'escalated-artifacts')
+        actions = []
+        for a in artifacts:
+            ElementTree.SubElement(esc_arts, 'escalated-artifact', {"uri": a.uri})
+            actions.append({"action": "review", "artifact": a.uri})
+        request = ElementTree.SubElement(escalation, 'request')
+        ElementTree.SubElement(request, 'comment').text = comment
+        ElementTree.SubElement(request, 'reviewer', {"uri": reviewer_uri})
+
+        self.next_actions = actions
+        self.put()
+
     def get_next_actions(self):
         actions = []
         self.get()
@@ -949,12 +963,15 @@ class StepActions(Entity):
         return actions
 
     def set_next_actions(self, actions):
+        self.get()
         for node in self.root.find('next-actions').findall('next-action'):
             art_uri = node.attrib.get('artifact-uri')
             action = [action for action in actions if action['artifact'].uri == art_uri][0]
-            if 'action' in action: node.attrib['action'] = action.get('action')
+            if 'action' in action:
+                node.attrib['action'] = action.get('action')
 
     next_actions = property(get_next_actions, set_next_actions)
+    escalation = property(get_escalation, set_escalation)
 
 
 class StepProgramStatus(Entity):
