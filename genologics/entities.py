@@ -938,7 +938,7 @@ class StepActions(Entity):
         actions = []
         for a in artifacts:
             ElementTree.SubElement(esc_arts, 'escalated-artifact', {"uri": a.uri})
-            actions.append({"action": "review", "artifact": a.uri})
+            actions.append({"action": "review", "artifact": a})
         request = ElementTree.SubElement(escalation, 'request')
         ElementTree.SubElement(request, 'comment').text = comment
         ElementTree.SubElement(request, 'reviewer', {"uri": reviewer_uri})
@@ -1051,26 +1051,31 @@ class Step(Entity):
         return self._reagent_lots.reagent_lots
 
     @classmethod
-    def create(cls, lims, step_config, inputs, container_type=None, reagent_category=None, udfs={}, **kwargs):
+    def create(cls, lims, step_config, input_arts, container_type=None, reagent_category=None, udfs={}, **kwargs):
         """Create an instance of Step from attributes then post it to the LIMS"""
-        if not isinstance(container, Container):
-            raise TypeError('%s is not of type Container'%container)
         instance = super(Step, cls)._create(lims, creation_tag='step-creation', udfs=udfs, **kwargs)
-
         inputs = ElementTree.SubElement(instance.root, 'inputs')
-        for i in inputs:
+        for i in input_arts:
             if isinstance(i, Artifact):
-                ElementTree.SubElement(inputs, 'input', {"uri": a.uri})
+                ElementTree.SubElement(inputs, 'input', {"uri": i.uri})
             elif isinstance(i, str):
                 ElementTree.SubElement(inputs, 'input', {"uri": i})
-        ElementTree.SubElement(instance, 'configuration', {"uri": step_config})
+        ElementTree.SubElement(instance.root, 'configuration', {"uri": step_config})
+
         if container_type:
-            ElementTree.SubElement(instance, 'container-type').text = container_type
+            if isinstance(container_type, Containertype):
+                ElementTree.SubElement(instance.root, 'container-type').text = container_type.name
+            elif isinstance(container_type, str):
+                ElementTree.SubElement(instance.root, 'container-type').text = container_type
+            else:
+                raise ValueError("Invalid container_type: '{}'".format(container_type))
+
+        # Is reagent-category equivalent to reagent-type?
         if reagent_category:
-            ElementTree.SubElement(instance, 'reagent-category').text = reagent_category
+            ElementTree.SubElement(instance.root, 'reagent-category').text = reagent_category
 
         data = lims.tostring(ElementTree.ElementTree(instance.root))
-        instance.root = lims.put(uri=lims.get_uri(cls._URI), data=data)
+        instance.root = lims.post(uri=lims.get_uri(cls._URI), data=data)
         instance._uri = instance.root.attrib['uri']
         return instance
 
@@ -1141,10 +1146,10 @@ class ReagentType(Entity):
 class Queue(Entity):
     """Queue of a given step. Will recursively get all the pages of artifacts, and therefore, can be quite slow to load"""
     _URI = "queues"
-    _TAG= "queue"
+    _TAG = "queue"
     _PREFIX = "que"
 
-
+    protocol_step_uri = StringAttributeDescriptor('protocol-step-uri')
     artifacts = MultiPageNestedEntityListDescriptor("artifact", Artifact, "artifacts")
 
 Sample.artifact          = EntityDescriptor('artifact', Artifact)
