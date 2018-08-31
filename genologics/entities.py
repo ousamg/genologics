@@ -1050,6 +1050,30 @@ class Step(Entity):
     def reagent_lots(self):
         return self._reagent_lots.reagent_lots
 
+    @classmethod
+    def create(cls, lims, step_config, inputs, container_type=None, reagent_category=None, udfs={}, **kwargs):
+        """Create an instance of Step from attributes then post it to the LIMS"""
+        if not isinstance(container, Container):
+            raise TypeError('%s is not of type Container'%container)
+        instance = super(Step, cls)._create(lims, creation_tag='step-creation', udfs=udfs, **kwargs)
+
+        inputs = ElementTree.SubElement(instance.root, 'inputs')
+        for i in inputs:
+            if isinstance(i, Artifact):
+                ElementTree.SubElement(inputs, 'input', {"uri": a.uri})
+            elif isinstance(i, str):
+                ElementTree.SubElement(inputs, 'input', {"uri": i})
+        ElementTree.SubElement(instance, 'configuration', {"uri": step_config})
+        if container_type:
+            ElementTree.SubElement(instance, 'container-type').text = container_type
+        if reagent_category:
+            ElementTree.SubElement(instance, 'reagent-category').text = reagent_category
+
+        data = lims.tostring(ElementTree.ElementTree(instance.root))
+        instance.root = lims.put(uri=lims.get_uri(cls._URI), data=data)
+        instance._uri = instance.root.attrib['uri']
+        return instance
+
 
 class ProtocolStep(Entity):
     """Steps key in the Protocol object"""
