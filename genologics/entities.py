@@ -1150,6 +1150,7 @@ class Queue(Entity):
     _PREFIX = "que"
 
     protocol_step_uri = StringAttributeDescriptor('protocol-step-uri')
+    name = StringAttributeDescriptor('name')
     artifacts = MultiPageNestedEntityListDescriptor("artifact", Artifact, "artifacts")
 
 Sample.artifact          = EntityDescriptor('artifact', Artifact)

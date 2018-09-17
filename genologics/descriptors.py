@@ -22,6 +22,8 @@ from xml.etree import ElementTree
 import logging
 
 logger = logging.getLogger(__name__)
+QC_PASS = 'PASSED'
+QC_FAIL = 'FAILED'
 
 
 class BaseDescriptor(object):
