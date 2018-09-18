@@ -900,6 +900,36 @@ class StepPlacements(Entity):
 class StepActions(Entity):
     """Actions associated with a step"""
     _escalation = None
+    _action_attrs = {
+        'nextstep': {
+            "required": ['step-uri'],
+            "optional": []
+        },
+        'review': {
+            "required": ["reviewer"],
+            "optional": ["comment", "author"]
+        },
+        'rework': {
+            "required": ["rework-step-uri"],
+            "optional": ["step-uri"]
+        },
+        'completerepeat': {
+            "required": ["step-uri"],
+            "optional": []
+        },
+        'repeat': {
+            "required": [],
+            "optional": []
+        },
+        'remove': {
+            "required": [],
+            "optional": []
+        },
+        'complete': {
+            "required": [],
+            "optional": []
+        },
+    }
 
     def get_escalation(self):
         if not self._escalation:
@@ -966,9 +996,24 @@ class StepActions(Entity):
         self.get()
         for node in self.root.find('next-actions').findall('next-action'):
             art_uri = node.attrib.get('artifact-uri')
-            action = [action for action in actions if action['artifact'].uri == art_uri][0]
-            if 'action' in action:
-                node.attrib['action'] = action.get('action')
+            action_opts = [action for action in actions if action['artifact'].uri == art_uri][0]
+            if 'action' not in action_opts:
+                raise RuntimeError("No action type specified: {}".format(action_opts))
+            elif action_opts['action'] not in self._action_attrs:
+                raise RuntimeError("Invalid action type specified: {}".format(action_opts))
+
+            node.attrib['action'] = action_opts['action']
+            if action_opts['action'] == 'nextstep':
+                for req_k in self._action_attrs[action_opts['action']]['required']:
+                    try:
+                        node.attrib[req_k] = action_opts[req_k]
+                    except KeyError:
+                        raise RuntimeError("Action missing required attribute '{}': {}".format(req_k, action_opts))
+                for opt_k in self._action_attrs[action_opts['action']]['optional']:
+                    if opt_k in action_opts:
+                        node.attrib[opt_k] = action_opts[opt_k]
+        self.put()
+
 
     next_actions = property(get_next_actions, set_next_actions)
     escalation = property(get_escalation, set_escalation)
