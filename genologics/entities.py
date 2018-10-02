@@ -961,6 +961,9 @@ class StepActions(Entity):
                     self._escalation['artifacts'].extend(art)
         return self._escalation
 
+    # Escalating a sample requires adding subelements to the XML root, so should only be
+    # done through the `set_escalation` function, as opposed to directly via `set_next_actions`
+    # as can be used for moving to the next step
     def set_escalation(self, artifacts, comment, reviewer_uri, requester=None):
         self.get()
         escalation = ElementTree.SubElement(self.root, 'escalation')
@@ -1003,7 +1006,9 @@ class StepActions(Entity):
                 raise RuntimeError("Invalid action type specified: {}".format(action_opts))
 
             node.attrib['action'] = action_opts['action']
-            if action_opts['action'] == 'nextstep':
+            # review subfields are added in the `set_escalation`, which should
+            # always be used for escalating samples to manager review
+            if action_opts['action'] != 'review':
                 for req_k in self._action_attrs[action_opts['action']]['required']:
                     try:
                         node.attrib[req_k] = action_opts[req_k]
