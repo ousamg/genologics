@@ -15,12 +15,15 @@ except ImportError:
 
 from decimal import Decimal
 import datetime
+import dateutil
 import time
 from xml.etree import ElementTree
 
 import logging
 
 logger = logging.getLogger(__name__)
+QC_PASS = 'PASSED'
+QC_FAIL = 'FAILED'
 
 
 class BaseDescriptor(object):
@@ -80,6 +83,16 @@ class StringAttributeDescriptor(TagDescriptor):
     def __set__(self, instance, value):
         instance.get()
         instance.root.attrib[self.tag] = value
+
+class DateTimeDescriptor(StringDescriptor):
+    """An instance attribute containing a formatted dateTime string value
+    """
+
+    def __get__(self, instance, cls):
+        ds = super(DateTimeDescriptor, self).__get__(instance, cls)
+        if ds is not None:
+            return dateutil.parser.parse(ds)
+
 
 
 class StringListDescriptor(TagDescriptor):

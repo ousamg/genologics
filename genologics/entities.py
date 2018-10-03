@@ -13,7 +13,7 @@ from genologics.descriptors import StringDescriptor, StringDictionaryDescriptor,
     PlacementDictionaryDescriptor, InputOutputMapList, LocationDescriptor, ReagentLabelList, NestedEntityListDescriptor, \
     NestedStringListDescriptor, NestedAttributeListDescriptor, IntegerAttributeDescriptor, NestedStringDescriptor, \
     NestedBooleanDescriptor, MultiPageNestedEntityListDescriptor, ProcessTypeParametersDescriptor, \
-    ProcessTypeProcessInputDescriptor, ProcessTypeProcessOutputDescriptor, NamedStringDescriptor
+    ProcessTypeProcessInputDescriptor, ProcessTypeProcessOutputDescriptor, NamedStringDescriptor, DateTimeDescriptor
 
 try:
     from urllib.parse import urlsplit, urlparse, parse_qs, urlunparse
@@ -533,7 +533,7 @@ class Udfconfig(Entity):
     show_in_tables                = BooleanDescriptor('show-in-tables')
     is_editable                   = BooleanDescriptor('is-editable')
     is_required                   = BooleanDescriptor('is-required')
-    is_deviation                  = BooleanDescriptor('is-deviation') 
+    is_deviation                  = BooleanDescriptor('is-deviation')
     is_controlled_vocabulary      = BooleanDescriptor('is-controlled-vocabulary')
     presets                       = StringListDescriptor('preset')
 
@@ -641,8 +641,8 @@ class Process(Entity):
         return [a for a in artifacts if a.output_type == 'ResultFile']
 
     def analytes(self):
-        """Retreving the output Analytes of the process, if existing. 
-        If the process is not producing any output analytes, the input 
+        """Retreving the output Analytes of the process, if existing.
+        If the process is not producing any output analytes, the input
         analytes are returned. Input/Output is returned as a information string.
         Makes aggregate processes and normal processes look the same."""
         info = 'Output'
@@ -900,9 +900,38 @@ class StepPlacements(Entity):
 class StepActions(Entity):
     """Actions associated with a step"""
     _escalation = None
+    _action_attrs = {
+        'nextstep': {
+            "required": ['step-uri'],
+            "optional": []
+        },
+        'review': {
+            "required": ["reviewer"],
+            "optional": ["comment", "author"]
+        },
+        'rework': {
+            "required": ["rework-step-uri"],
+            "optional": ["step-uri"]
+        },
+        'completerepeat': {
+            "required": ["step-uri"],
+            "optional": []
+        },
+        'repeat': {
+            "required": [],
+            "optional": []
+        },
+        'remove': {
+            "required": [],
+            "optional": []
+        },
+        'complete': {
+            "required": [],
+            "optional": []
+        },
+    }
 
-    @property
-    def escalation(self):
+    def get_escalation(self):
         if not self._escalation:
             self.get()
             self._escalation = {}
@@ -932,6 +961,24 @@ class StepActions(Entity):
                     self._escalation['artifacts'].extend(art)
         return self._escalation
 
+    # Escalating a sample requires adding subelements to the XML root, so should only be
+    # done through the `set_escalation` function, as opposed to directly via `set_next_actions`
+    # as can be used for moving to the next step
+    def set_escalation(self, artifacts, comment, reviewer_uri, requester=None):
+        self.get()
+        escalation = ElementTree.SubElement(self.root, 'escalation')
+        esc_arts = ElementTree.SubElement(escalation, 'escalated-artifacts')
+        actions = []
+        for a in artifacts:
+            ElementTree.SubElement(esc_arts, 'escalated-artifact', {"uri": a.uri})
+            actions.append({"action": "review", "artifact": a})
+        request = ElementTree.SubElement(escalation, 'request')
+        ElementTree.SubElement(request, 'comment').text = comment
+        ElementTree.SubElement(request, 'reviewer', {"uri": reviewer_uri})
+
+        self.next_actions = actions
+        self.put()
+
     def get_next_actions(self):
         actions = []
         self.get()
@@ -949,12 +996,32 @@ class StepActions(Entity):
         return actions
 
     def set_next_actions(self, actions):
+        self.get()
         for node in self.root.find('next-actions').findall('next-action'):
             art_uri = node.attrib.get('artifact-uri')
-            action = [action for action in actions if action['artifact'].uri == art_uri][0]
-            if 'action' in action: node.attrib['action'] = action.get('action')
+            action_opts = [action for action in actions if action['artifact'].uri == art_uri][0]
+            if 'action' not in action_opts:
+                raise RuntimeError("No action type specified: {}".format(action_opts))
+            elif action_opts['action'] not in self._action_attrs:
+                raise RuntimeError("Invalid action type specified: {}".format(action_opts))
+
+            node.attrib['action'] = action_opts['action']
+            # review subfields are added in the `set_escalation`, which should
+            # always be used for escalating samples to manager review
+            if action_opts['action'] != 'review':
+                for req_k in self._action_attrs[action_opts['action']]['required']:
+                    try:
+                        node.attrib[req_k] = action_opts[req_k]
+                    except KeyError:
+                        raise RuntimeError("Action missing required attribute '{}': {}".format(req_k, action_opts))
+                for opt_k in self._action_attrs[action_opts['action']]['optional']:
+                    if opt_k in action_opts:
+                        node.attrib[opt_k] = action_opts[opt_k]
+        self.put()
+
 
     next_actions = property(get_next_actions, set_next_actions)
+    escalation = property(get_escalation, set_escalation)
 
 
 class StepProgramStatus(Entity):
@@ -1012,13 +1079,15 @@ class Step(Entity):
     _URI = 'steps'
     _PREFIX = 'stp'
 
-    current_state = StringAttributeDescriptor('current-state')
-    _reagent_lots = EntityDescriptor('reagent-lots', StepReagentLots)
-    actions       = EntityDescriptor('actions', StepActions)
-    placements    = EntityDescriptor('placements', StepPlacements)
-    details       = EntityDescriptor('details', StepDetails)
-    step_pools         = EntityDescriptor('pools', StepPools)
-    program_status     = EntityDescriptor('program-status', StepProgramStatus)
+    current_state  = StringAttributeDescriptor('current-state')
+    date_started   = DateTimeDescriptor('date-started')
+    date_completed = DateTimeDescriptor('date-completed')
+    _reagent_lots  = EntityDescriptor('reagent-lots', StepReagentLots)
+    actions        = EntityDescriptor('actions', StepActions)
+    placements     = EntityDescriptor('placements', StepPlacements)
+    details        = EntityDescriptor('details', StepDetails)
+    step_pools     = EntityDescriptor('pools', StepPools)
+    program_status = EntityDescriptor('program-status', StepProgramStatus)
 
     def advance(self):
         self.get()
@@ -1030,6 +1099,35 @@ class Step(Entity):
     @property
     def reagent_lots(self):
         return self._reagent_lots.reagent_lots
+
+    @classmethod
+    def create(cls, lims, step_config, input_arts, container_type=None, reagent_category=None, udfs={}, **kwargs):
+        """Create an instance of Step from attributes then post it to the LIMS"""
+        instance = super(Step, cls)._create(lims, creation_tag='step-creation', udfs=udfs, **kwargs)
+        inputs = ElementTree.SubElement(instance.root, 'inputs')
+        for i in input_arts:
+            if isinstance(i, Artifact):
+                ElementTree.SubElement(inputs, 'input', {"uri": i.uri})
+            elif isinstance(i, str):
+                ElementTree.SubElement(inputs, 'input', {"uri": i})
+        ElementTree.SubElement(instance.root, 'configuration', {"uri": step_config})
+
+        if container_type:
+            if isinstance(container_type, Containertype):
+                ElementTree.SubElement(instance.root, 'container-type').text = container_type.name
+            elif isinstance(container_type, str):
+                ElementTree.SubElement(instance.root, 'container-type').text = container_type
+            else:
+                raise ValueError("Invalid container_type: '{}'".format(container_type))
+
+        # Is reagent-category equivalent to reagent-type?
+        if reagent_category:
+            ElementTree.SubElement(instance.root, 'reagent-category').text = reagent_category
+
+        data = lims.tostring(ElementTree.ElementTree(instance.root))
+        instance.root = lims.post(uri=lims.get_uri(cls._URI), data=data)
+        instance._uri = instance.root.attrib['uri']
+        return instance
 
 
 class ProtocolStep(Entity):
@@ -1098,10 +1196,11 @@ class ReagentType(Entity):
 class Queue(Entity):
     """Queue of a given step. Will recursively get all the pages of artifacts, and therefore, can be quite slow to load"""
     _URI = "queues"
-    _TAG= "queue"
+    _TAG = "queue"
     _PREFIX = "que"
 
-
+    protocol_step_uri = StringAttributeDescriptor('protocol-step-uri')
+    name = StringAttributeDescriptor('name')
     artifacts = MultiPageNestedEntityListDescriptor("artifact", Artifact, "artifacts")
 
 Sample.artifact          = EntityDescriptor('artifact', Artifact)
@@ -1111,4 +1210,3 @@ Artifact.workflow_stages = NestedEntityListDescriptor('workflow-stage', Stage, '
 Step.configuration       = EntityDescriptor('configuration', ProtocolStep)
 StepProgramStatus.configuration = EntityDescriptor('configuration', ProtocolStep)
 Researcher.roles = NestedEntityListDescriptor('role', Role, 'credentials')
-
